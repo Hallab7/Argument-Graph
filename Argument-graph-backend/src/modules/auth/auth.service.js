@@ -1,4 +1,8 @@
 import User from '../users/user.model.js';
+import Debate from '../debates/debate.model.js';
+import Argument from '../arguments/argument.model.js';
+import Rating from '../ratings/rating.model.js';
+import Connection from '../connections/connection.model.js';
 import bcrypt from 'bcrypt';
 import { signToken, verifyToken } from '../../utils/jwt.js';
 import { ApiError } from '../../utils/ApiError.js';
@@ -298,5 +302,98 @@ export class AuthService {
     await user.save();
 
     return { message: 'Password updated successfully' };
+  }
+
+  static async deleteAccount(userId, password) {
+    try {
+      // Get user with password for verification
+      const user = await User.findById(userId).select('+password +avatar_public_id');
+      
+      if (!user) {
+        throw ApiError.notFound('User not found');
+      }
+
+      // Verify password
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      
+      if (!isPasswordValid) {
+        throw ApiError.unauthorized('Invalid password');
+      }
+
+      // Start collecting deletion statistics
+      const deletionStats = {
+        user: false,
+        debates: 0,
+        arguments: 0,
+        ratings: 0,
+        connections: 0
+      };
+
+      // Delete user's ratings first (to avoid foreign key issues)
+      const deletedRatings = await Rating.deleteMany({ rater: userId });
+      deletionStats.ratings = deletedRatings.deletedCount;
+
+      // Delete connections created by the user
+      const deletedConnections = await Connection.deleteMany({ createdBy: userId });
+      deletionStats.connections = deletedConnections.deletedCount;
+
+      // Delete user's arguments (this will also remove connections referencing these arguments)
+      const userArguments = await Argument.find({ author: userId });
+      const argumentIds = userArguments.map(arg => arg._id);
+      
+      // Delete connections that reference user's arguments
+      if (argumentIds.length > 0) {
+        const deletedArgumentConnections = await Connection.deleteMany({
+          $or: [
+            { sourceArgument: { $in: argumentIds } },
+            { targetArgument: { $in: argumentIds } }
+          ]
+        });
+        deletionStats.connections += deletedArgumentConnections.deletedCount;
+
+        // Delete ratings for user's arguments
+        const deletedArgumentRatings = await Rating.deleteMany({ 
+          argument: { $in: argumentIds } 
+        });
+        deletionStats.ratings += deletedArgumentRatings.deletedCount;
+      }
+
+      // Delete user's arguments
+      const deletedArguments = await Argument.deleteMany({ author: userId });
+      deletionStats.arguments = deletedArguments.deletedCount;
+
+      // Delete user's debates
+      const deletedDebates = await Debate.deleteMany({ creator: userId });
+      deletionStats.debates = deletedDebates.deletedCount;
+
+      // Clean up avatar from Cloudinary if it exists
+      if (user.avatar_public_id && isCloudinaryConfigured()) {
+        try {
+          await deleteFromCloudinary(user.avatar_public_id);
+        } catch (error) {
+          console.warn('Failed to delete avatar from Cloudinary:', error.message);
+          // Continue with account deletion even if avatar cleanup fails
+        }
+      }
+
+      // Finally, delete the user account
+      await User.findByIdAndDelete(userId);
+      deletionStats.user = true;
+
+      return {
+        message: 'Account deleted successfully',
+        deletedAt: new Date(),
+        deletedData: deletionStats
+      };
+
+    } catch (error) {
+      console.error('Account deletion error:', error);
+      
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      
+      throw ApiError.internal('Failed to delete account. Please try again.');
+    }
   }
 }

@@ -7,7 +7,8 @@ import {
   changePassword,
   uploadAvatar,
   removeAvatar,
-  logout
+  logout,
+  deleteAccount
 } from './auth.controller.js';
 import authMiddleware from '../../middlewares/auth.middleware.js';
 import { validate } from '../../middlewares/validation.middleware.js';
@@ -294,5 +295,76 @@ router.delete('/avatar', authMiddleware, removeAvatar);
  *               $ref: '#/components/schemas/SuccessResponse'
  */
 router.post('/logout', authMiddleware, logout);
+
+/**
+ * @swagger
+ * /auth/delete-account:
+ *   delete:
+ *     summary: Delete user account permanently
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [password, confirmation]
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 description: Current password for verification
+ *               confirmation:
+ *                 type: string
+ *                 enum: ["DELETE_MY_ACCOUNT"]
+ *                 description: Must be exactly "DELETE_MY_ACCOUNT" to confirm deletion
+ *     responses:
+ *       200:
+ *         description: Account deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Account deleted successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     deletedData:
+ *                       type: object
+ *                       properties:
+ *                         user: 
+ *                           type: boolean
+ *                         debates:
+ *                           type: number
+ *                         arguments:
+ *                           type: number
+ *                         ratings:
+ *                           type: number
+ *                         connections:
+ *                           type: number
+ *       400:
+ *         description: Invalid password or confirmation
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Unauthorized or invalid password
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.delete('/delete-account', authMiddleware, deleteAccount);
 
 export default router;

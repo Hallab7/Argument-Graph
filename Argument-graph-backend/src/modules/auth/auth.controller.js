@@ -132,3 +132,30 @@ export const logout = async (req, res, next) => {
     next(error);
   }
 };
+
+export const deleteAccount = async (req, res, next) => {
+  try {
+    const { password, confirmation } = req.body;
+    
+    // Validate required fields
+    if (!password || !confirmation) {
+      return next(ApiError.badRequest('Password and confirmation are required'));
+    }
+    
+    // Validate confirmation text
+    if (confirmation !== 'DELETE_MY_ACCOUNT') {
+      return next(ApiError.badRequest('Confirmation must be exactly "DELETE_MY_ACCOUNT"'));
+    }
+    
+    const result = await AuthService.deleteAccount(req.userId, password);
+    
+    const response = ApiResponse.success(
+      result,
+      'Account deleted successfully'
+    );
+    
+    sendResponse(res, response);
+  } catch (error) {
+    next(error);
+  }
+};

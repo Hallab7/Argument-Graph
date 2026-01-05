@@ -9,21 +9,21 @@ import { isEmailConfigured } from './config/email.js';
 const PORT = process.env.PORT || 5000;
 
 // Test configurations on startup
-console.log('🔧 Testing configurations...');
+// console.log('🔧 Testing configurations...');
 
 // Test Cloudinary configuration
-if (isCloudinaryConfigured()) {
-  console.log('✅ Cloudinary configuration is valid');
-} else {
-  console.log('⚠️  Cloudinary configuration is missing - avatar uploads will be disabled');
-}
+// if (isCloudinaryConfigured()) {
+//   console.log('✅ Cloudinary configuration is valid');
+// } else {
+//   console.log('⚠️  Cloudinary configuration is missing - avatar uploads will be disabled');
+// }
 
 // Test Email configuration
-if (isEmailConfigured()) {
-  console.log('✅ Email configuration is valid');
-} else {
-  console.log('⚠️  Email configuration is missing - password reset will be disabled');
-}
+// if (isEmailConfigured()) {
+//   console.log('✅ Email configuration is valid');
+// } else {
+//   console.log('⚠️  Email configuration is missing - password reset will be disabled');
+// }
 
 connectDB();
 

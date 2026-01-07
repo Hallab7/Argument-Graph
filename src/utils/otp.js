@@ -17,10 +17,10 @@ export const generateOTP = (length = 6) => {
 // Create and save OTP
 export const createOTP = async (email, type = 'password_reset', expiresInMinutes = 10) => {
   try {
-    // Invalidate any existing OTPs for this email and type
+    
     await OTP.invalidateAllForEmail(email, type);
     
-    // Generate new OTP
+   
     const otpCode = generateOTP(parseInt(process.env.OTP_LENGTH) || 6);
     const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
     
